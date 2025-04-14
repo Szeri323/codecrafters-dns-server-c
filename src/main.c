@@ -6,6 +6,7 @@
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
+#include "message.h"
 
 int main()
 {
@@ -66,10 +67,31 @@ int main()
 		printf("Received %d bytes: %s\n", bytesRead, buffer);
 
 		// Create an empty response
-		char response[1] = {'\0'};
+		unsigned char response[sizeof(dns_header_t)];
+		dns_header_t header;
+		header.id = htons(1234);
+		header.flags_bitfields.QR = 1;
+		header.flags_bitfields.OPCODE = 0;
+		header.flags_bitfields.AA = 0;
+		header.flags_bitfields.TC = 0;
+		header.flags_bitfields.RD = 0;
+		header.flags_bitfields.RA = 0;
+		header.flags_bitfields.Z = 0;
+		header.flags_bitfields.RCODE= 0;
+		header.flags_u16 = htons(header.flags_u16);
+		header.qdcount = 0;
+		header.ancount = 0;
+		header.nscount = 0;
+		header.arcount = 0;
+
+		memcpy(response, &header, sizeof(header));
+
+		for(size_t i = 0; i < sizeof(response); ++i) {
+			printf("%x ", response[i]);
+		};
 
 		// Send response
-		if (sendto(udpSocket, response, sizeof(response), 0, (struct sockaddr *)&clientAddress, sizeof(clientAddress)) == -1)
+		if (sendto(udpSocket, (const void *)&header, sizeof(header), 0, (struct sockaddr *)&clientAddress, sizeof(clientAddress)) == -1)
 		{
 			perror("Failed to send response");
 		}
