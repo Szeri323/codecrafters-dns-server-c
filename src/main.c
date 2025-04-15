@@ -65,10 +65,13 @@ int main()
 
 		buffer[bytesRead] = '\0';
 		printf("Received %d bytes: %s\n", bytesRead, buffer);
+		for (size_t i = 0; i < sizeof(buffer); ++i)
+		{
+			printf("%x", buffer[i]);
+		};
 
-		// Create an empty response
-		unsigned char response[sizeof(dns_header_t)];
 		dns_header_t header;
+		size_t header_size = sizeof(dns_header_t);
 		header.id = htons(1234);
 		header.flags_bitfields.QR = 1;
 		header.flags_bitfields.OPCODE = 0;
@@ -77,21 +80,60 @@ int main()
 		header.flags_bitfields.RD = 0;
 		header.flags_bitfields.RA = 0;
 		header.flags_bitfields.Z = 0;
-		header.flags_bitfields.RCODE= 0;
+		header.flags_bitfields.RCODE = 0;
 		header.flags_u16 = htons(header.flags_u16);
 		header.qdcount = 0;
 		header.ancount = 0;
 		header.nscount = 0;
 		header.arcount = 0;
 
-		memcpy(response, &header, sizeof(header));
+		printf("\nHeader buffer:\n");
 
-		for(size_t i = 0; i < sizeof(response); ++i) {
+		uint8_t domain_name_length = 12;
+		size_t domain_name_length_size = sizeof(domain_name_length);
+		char domain_name[] = "codecrafters";
+		size_t domain_name_size = sizeof(domain_name) - 1;
+		uint8_t domain_length = 2;
+		size_t domain_length_size = sizeof(domain_length);
+		char domain[] = "io";
+		size_t domain_size = sizeof(domain);
+		uint16_t question_type = htons(1);
+		size_t question_type_size = sizeof(question_type);
+		uint16_t question_class = htons(1);
+		size_t question_class_size = sizeof(question_class);
+
+		size_t question_size = domain_name_length_size + domain_name_size + domain_length_size + domain_size + question_type_size + question_class_size;
+
+		header.qdcount = htons(header.qdcount + 1);
+
+		// memset(buf, 0, buf_size);
+
+		printf("\nQuestion buffer:\n");
+
+		// for(size_t i = 0; i < sizeof(buf); ++i) {
+		// 	printf("%x ", buf[i]);
+		// };
+
+		// Create an empty response
+		unsigned char response[header_size + question_size];
+
+		memcpy(response, &header, header_size);
+		memcpy(response + header_size, &domain_name_length, domain_name_length_size);
+		memcpy(response + header_size + domain_name_length_size, domain_name, domain_name_size);
+		memcpy(response + header_size + domain_name_length_size + domain_name_size, &domain_length, domain_length_size);
+		memcpy(response + header_size + domain_name_length_size + domain_name_size + domain_length_size, domain, domain_size);
+		memcpy(response + header_size + domain_name_length_size + domain_name_size + domain_length_size + domain_size, &question_type, question_type_size);
+		memcpy(response + header_size + domain_name_length_size + domain_name_size + domain_length_size + domain_size + question_type_size, &question_class, question_class_size);
+
+		printf("\nResponse buffer:\n");
+
+		for (size_t i = 0; i < sizeof(response); ++i)
+		{
 			printf("%x ", response[i]);
 		};
 
 		// Send response
-		if (sendto(udpSocket, (const void *)&header, sizeof(header), 0, (struct sockaddr *)&clientAddress, sizeof(clientAddress)) == -1)
+		if (sendto(udpSocket, response, sizeof(response), 0, (struct sockaddr *)&clientAddress, sizeof(clientAddress)) == -1)
 		{
 			perror("Failed to send response");
 		}

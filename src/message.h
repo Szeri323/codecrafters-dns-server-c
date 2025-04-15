@@ -1,8 +1,5 @@
 #include <stdint.h>
-// typedef struct {
-//     header header;
 
-// }message;
 
 typedef struct
 {
@@ -30,9 +27,11 @@ typedef struct
     uint16_t arcount;
 } dns_header_t;
 
-// typedef struct {
-
-// }question;
+typedef struct {
+    
+    uint16_t type;
+    uint16_t class;
+}dns_question_t;
 // typedef struct {
 
 // }answer;
@@ -42,3 +41,8 @@ typedef struct
 // typedef struct {
 
 // }additional;
+// typedef struct {
+//     dns_header_t header;
+//     dns_question_t question;
+
+// }message;
