@@ -70,6 +70,7 @@ int main()
 			printf("%x", buffer[i]);
 		};
 
+		// Header
 		dns_header_t header;
 		size_t header_size = sizeof(dns_header_t);
 		header.id = htons(1234);
@@ -87,53 +88,112 @@ int main()
 		header.nscount = 0;
 		header.arcount = 0;
 
-		printf("\nHeader buffer:\n");
-
-		uint8_t domain_name_length = 12;
-		size_t domain_name_length_size = sizeof(domain_name_length);
-		char domain_name[] = "codecrafters";
-		size_t domain_name_size = sizeof(domain_name) - 1;
-		uint8_t domain_length = 2;
-		size_t domain_length_size = sizeof(domain_length);
-		char domain[] = "io";
-		size_t domain_size = sizeof(domain);
-		uint16_t question_type = htons(1);
-		size_t question_type_size = sizeof(question_type);
-		uint16_t question_class = htons(1);
-		size_t question_class_size = sizeof(question_class);
-
-		size_t question_size = domain_name_length_size + domain_name_size + domain_length_size + domain_size + question_type_size + question_class_size;
+		// Question
+		dns_question_t question;
+		question.domain_name = "codecrafters";
+		question.domain_name_length = strlen(question.domain_name);
+		question.domain = "io";
+		question.domain_length = strlen(question.domain);
+		question.type = htons(1);
+		question.class = htons(1);
+		// size_t question_size = sizeof(question);
 
 		header.qdcount = htons(header.qdcount + 1);
 
-		// memset(buf, 0, buf_size);
+		// Anwser
+
+		dns_answer_t answer;
+		answer.domain_name = "codecrafters";
+		answer.domain_name_length = strlen(answer.domain_name);
+		answer.domain = "io";
+		answer.domain_length = strlen(answer.domain);
+		answer.type = htons(1);
+		answer.class = htons(1);
+		answer.rdata_length = htons(4);
+		answer.ttl = htons(60);
+		answer.ip_address_bitfields.s1 = 8;
+		answer.ip_address_bitfields.s2 = 8;
+		answer.ip_address_bitfields.s3 = 8;
+		answer.ip_address_bitfields.s4 = 8;
+		answer.rdata = htons(answer.ip_address_u32);
+
+		header.ancount = htons(header.ancount + 1);
+
+		// Header buffer:
+		// 4 d2 80 0 0 1 0 0 0 0 0 0
+		// Question buffer:
+		// c 63 6f 64 65 63 72 61 66 74 65 72 73 2 69 6f 0 0 1 0 1
+		// Response buffer:
+		// 4 d2 80 0 0 1 0 0 0 0 0 0 c 63 6f 64 65 63 72 61 66 74 65 7 0 1 0 1
+
+		// Create an empty response
+		unsigned char response[1024];
+
+		size_t offset = 0;
+
+		// Header cpy
+		memcpy(response, &header, header_size);
+		offset += header_size;
+
+		// Question cpy
+		memcpy(&response[offset], &question.domain_name_length, sizeof(question.domain_name_length));
+		offset += sizeof(question.domain_name_length);
+		memcpy(&response[offset], question.domain_name, question.domain_name_length);
+		offset += question.domain_name_length;
+		memcpy(&response[offset], &question.domain_length, sizeof(question.domain_length));
+		offset += sizeof(question.domain_length);
+		memcpy(&response[offset], question.domain, question.domain_length);
+		offset += question.domain_length;
+		response[offset++] = '\0';
+		memcpy(&response[offset], &question.type, sizeof(question.type));
+		offset += sizeof(question.type);
+		memcpy(&response[offset], &question.class, sizeof(question.class));
+		offset += sizeof(question.class);
+
+		// Answer cpy
+		memcpy(&response[offset], &answer.domain_name_length, sizeof(answer.domain_name_length));
+		offset += sizeof(answer.domain_name_length);
+		memcpy(&response[offset], answer.domain_name, answer.domain_name_length);
+		offset += answer.domain_name_length;
+		memcpy(&response[offset], &answer.domain_length, sizeof(answer.domain_length));
+		offset += sizeof(answer.domain_length);
+		memcpy(&response[offset], answer.domain, answer.domain_length);
+		offset += answer.domain_length;
+		response[offset++] = '\0';
+		memcpy(&response[offset], &answer.type, sizeof(answer.type));
+		offset += sizeof(answer.type);
+		memcpy(&response[offset], &answer.class, sizeof(answer.class));
+		offset += sizeof(answer.class);
+
+		memcpy(&response[offset], &answer.ttl, sizeof(answer.ttl));
+		offset += sizeof(answer.ttl);
+		memcpy(&response[offset], &answer.rdata_length, sizeof(answer.rdata_length));
+		offset += sizeof(answer.rdata_length);
+		memcpy(&response[offset], &answer.rdata, sizeof(answer.rdata));
+		offset += sizeof(answer.rdata);
+
+		printf("\nHeader buffer:\n");
+		for (size_t i = 0; i < header_size; ++i)
+		{
+			printf("%x ", response[i]);
+		};
 
 		printf("\nQuestion buffer:\n");
 
-		// for(size_t i = 0; i < sizeof(buf); ++i) {
-		// 	printf("%x ", buf[i]);
-		// };
-
-		// Create an empty response
-		unsigned char response[header_size + question_size];
-
-		memcpy(response, &header, header_size);
-		memcpy(response + header_size, &domain_name_length, domain_name_length_size);
-		memcpy(response + header_size + domain_name_length_size, domain_name, domain_name_size);
-		memcpy(response + header_size + domain_name_length_size + domain_name_size, &domain_length, domain_length_size);
-		memcpy(response + header_size + domain_name_length_size + domain_name_size + domain_length_size, domain, domain_size);
-		memcpy(response + header_size + domain_name_length_size + domain_name_size + domain_length_size + domain_size, &question_type, question_type_size);
-		memcpy(response + header_size + domain_name_length_size + domain_name_size + domain_length_size + domain_size + question_type_size, &question_class, question_class_size);
+		for (size_t i = header_size; i < offset; ++i)
+		{
+			printf("%x ", response[i]);
+		};
 
 		printf("\nResponse buffer:\n");
 
-		for (size_t i = 0; i < sizeof(response); ++i)
+		for (size_t i = 0; i < offset; ++i)
 		{
 			printf("%x ", response[i]);
 		};
 
 		// Send response
-		if (sendto(udpSocket, response, sizeof(response), 0, (struct sockaddr *)&clientAddress, sizeof(clientAddress)) == -1)
+		if (sendto(udpSocket, response, offset, 0, (struct sockaddr *)&clientAddress, sizeof(clientAddress)) == -1)
 		{
 			perror("Failed to send response");
 		}
