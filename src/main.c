@@ -50,7 +50,7 @@ int main()
 	}
 
 	int bytesRead;
-	char buffer[512];
+	unsigned char buffer[512];
 	socklen_t clientAddrLen = sizeof(clientAddress);
 
 	while (1)
@@ -65,24 +65,65 @@ int main()
 
 		buffer[bytesRead] = '\0';
 		printf("Received %d bytes: %s\n", bytesRead, buffer);
+		printf("\nRecived bytes:\n");
 		for (size_t i = 0; i < sizeof(buffer); ++i)
 		{
-			printf("%x", buffer[i]);
+			printf("%hhx ", buffer[i]);
+		};
+		printf("\n\n");
+		printf("\nRecived chars:\n");
+		for (size_t i = 0; i < sizeof(buffer); ++i)
+		{
+			printf("%c ", buffer[i]);
+		};
+
+		printf("\n\n");
+
+		for (size_t i = 0; i < sizeof(uint16_t); ++i)
+		{
+			printf("%hhx ", buffer[i]);
 		};
 
 		// Header
 		dns_header_t header;
 		size_t header_size = sizeof(dns_header_t);
-		header.id = htons(1234);
+		header.id = (uint16_t)buffer[0] << 8 | buffer[1];
+		header.id = htons(header.id);
+		header.flags_u16 = (uint16_t)buffer[2] << 8 | buffer[3];
+		// printf("\nflags: %hhx \n", header.bytes[0]);
+		// printf("\nflags: %hhx \n", header.bytes[1]);
+		// printf("\nQR: %d \n", header.flags_bitfields.QR);
+		// printf("\nOPCDOE: %d \n", header.flags_bitfields.OPCODE);
+		// printf("\nAA: %d \n", header.flags_bitfields.AA);
+		// printf("\nTC: %d \n", header.flags_bitfields.TC);
+		// printf("\nRD: %d \n", header.flags_bitfields.RD);
+		// printf("\nRA: %d \n", header.flags_bitfields.RA);
+		// printf("\nZ: %d \n", header.flags_bitfields.Z);
+		// printf("\nRCODE: %d \n", header.flags_bitfields.RCODE);
 		header.flags_bitfields.QR = 1;
-		header.flags_bitfields.OPCODE = 0;
 		header.flags_bitfields.AA = 0;
 		header.flags_bitfields.TC = 0;
-		header.flags_bitfields.RD = 0;
 		header.flags_bitfields.RA = 0;
 		header.flags_bitfields.Z = 0;
-		header.flags_bitfields.RCODE = 0;
+		if (header.flags_bitfields.OPCODE == 0)
+		{
+			header.flags_bitfields.RCODE = 0;
+		}
+		else
+		{
+			header.flags_bitfields.RCODE = 4;
+		}
 		header.flags_u16 = htons(header.flags_u16);
+		// printf("\nflags: %hhx \n", header.bytes[0]);
+		// printf("\nflags: %hhx \n", header.bytes[1]);
+		// printf("\nQR: %d \n", header.flags_bitfields.QR);
+		// printf("\nOPCDOE: %d \n", header.flags_bitfields.OPCODE);
+		// printf("\nAA: %d \n", header.flags_bitfields.AA);
+		// printf("\nTC: %d \n", header.flags_bitfields.TC);
+		// printf("\nRD: %d \n", header.flags_bitfields.RD);
+		// printf("\nRA: %d \n", header.flags_bitfields.RA);
+		// printf("\nZ: %d \n", header.flags_bitfields.Z);
+		// printf("\nRCODE: %d \n", header.flags_bitfields.RCODE);
 		header.qdcount = 0;
 		header.ancount = 0;
 		header.nscount = 0;
@@ -119,12 +160,8 @@ int main()
 
 		header.ancount = htons(header.ancount + 1);
 
-		// Header buffer:
-		// 4 d2 80 0 0 1 0 0 0 0 0 0
-		// Question buffer:
-		// c 63 6f 64 65 63 72 61 66 74 65 72 73 2 69 6f 0 0 1 0 1
-		// Response buffer:
-		// 4 d2 80 0 0 1 0 0 0 0 0 0 c 63 6f 64 65 63 72 61 66 74 65 7 0 1 0 1
+		// ID 6843
+		// printf("\nid: %d\n",htons(0x1aff));
 
 		// Create an empty response
 		unsigned char response[1024];

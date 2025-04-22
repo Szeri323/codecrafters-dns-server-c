@@ -18,6 +18,7 @@ typedef struct
     union
     {
         dns_flags_t flags_bitfields;
+        uint8_t bytes[2];
         uint16_t flags_u16;
     };
     uint16_t qdcount;
